@@ -1,14 +1,15 @@
 import { useState } from "react"
 import OnboardingForm from "./components/OnboardingForm"
+import RoadmapView from "./components/RoadmapView"
 
 export default function App() {
   const [submitted, setSubmitted] = useState(false)
   const [profile, setProfile] = useState(null)
   const [roadmap, setRoadmap] = useState(null)
 
-  const handleSubmit = (profile, roadmap) => {
+  const handleSubmit = (profile, data) => {
     setProfile(profile)
-    setRoadmap(roadmap)
+    setRoadmap(data.roadmap)
     setSubmitted(true)
   }
 
@@ -17,10 +18,7 @@ export default function App() {
       {!submitted ? (
         <OnboardingForm onSubmit={handleSubmit} />
       ) : (
-        <div className="p-8 text-center">
-          <h1 className="text-2xl font-bold text-green-600">Roadmap Generated!</h1>
-          <p className="text-gray-500 mt-2">Person 2 will build this screen.</p>
-        </div>
+        <RoadmapView roadmap={roadmap} />
       )}
     </div>
   )
