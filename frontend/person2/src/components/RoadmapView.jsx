@@ -1,20 +1,5 @@
 import { useState, useEffect } from "react";
 
-const initialData = [
-  { week: 1, theme: "Python Basics", tasks: ["Install Python and VS Code", "Complete Python variables and loops tutorial", "Write a simple calculator program"], resource: { title: "Python for Everybody - Coursera", url: "https://www.coursera.org/specializations/python" } },
-  { week: 2, theme: "Functions and File Handling", tasks: ["Learn functions and scope", "Practice file read/write operations", "Build a basic notes saving app"], resource: { title: "W3Schools Python", url: "https://www.w3schools.com/python" } },
-  { week: 3, theme: "Data Structures", tasks: ["Learn lists, dicts, sets", "Solve 5 easy problems on lists", "Build a contact book using dict"], resource: { title: "CS50P - Harvard", url: "https://cs50.harvard.edu/python" } },
-  { week: 4, theme: "Git and GitHub", tasks: ["Install Git", "Create your first GitHub repo", "Push a project to GitHub"], resource: { title: "Git Tutorial - Atlassian", url: "https://www.atlassian.com/git/tutorials" } },
-  { week: 5, theme: "HTML and CSS Basics", tasks: ["Build a simple webpage", "Learn flexbox layout", "Clone a simple landing page"], resource: { title: "The Odin Project", url: "https://www.theodinproject.com" } },
-  { week: 6, theme: "JavaScript Basics", tasks: ["Learn variables, loops, functions", "DOM manipulation basics", "Build a to-do list app"], resource: { title: "JavaScript.info", url: "https://javascript.info" } },
-  { week: 7, theme: "React Introduction", tasks: ["Understand components and props", "Build a counter app", "Learn useState hook"], resource: { title: "React Docs", url: "https://react.dev" } },
-  { week: 8, theme: "APIs and Fetch", tasks: ["Understand what an API is", "Fetch data from a public API", "Display API data in React"], resource: { title: "Public APIs List", url: "https://github.com/public-apis/public-apis" } },
-  { week: 9, theme: "Resume and LinkedIn", tasks: ["Write your first resume", "Set up LinkedIn profile", "Add your GitHub projects"], resource: { title: "Resume Worded", url: "https://resumeworded.com" } },
-  { week: 10, theme: "DSA - Arrays and Strings", tasks: ["Learn Big O basics", "Solve 10 easy LeetCode problems", "Understand two-pointer technique"], resource: { title: "NeetCode Roadmap", url: "https://neetcode.io/roadmap" } },
-  { week: 11, theme: "Mini Project", tasks: ["Pick one project idea", "Build and deploy it", "Write a README for it"], resource: { title: "Vercel Deploy Guide", url: "https://vercel.com/docs" } },
-  { week: 12, theme: "Mock Interviews and Next Steps", tasks: ["Do 2 mock interviews", "Apply to 3 internships", "Plan your Year 2 goals"], resource: { title: "Pramp - Free Mock Interviews", url: "https://www.pramp.com" } },
-];
-
 const statusStyles = {
   not_started: { label: "Not Started", className: "bg-gray-100 text-gray-600" },
   in_progress: { label: "In Progress", className: "bg-yellow-100 text-yellow-700" },
@@ -30,10 +15,61 @@ function loadProgress() {
   }
 }
 
-export default function RoadmapView() {
+export default function RoadmapView({ roadmapData }) {
   const [expandedWeek, setExpandedWeek] = useState(null);
   const [checkInWeek, setCheckInWeek] = useState(null);
   const [progress, setProgress] = useState(loadProgress);
+  const [weeks, setWeeks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // If roadmapData is passed from parent (Screen 1), use it directly
+    if (roadmapData && roadmapData.roadmap) {
+      setWeeks(roadmapData.roadmap);
+      return;
+    }
+
+    // Otherwise check localStorage for a saved roadmap
+    const saved = localStorage.getItem("roadmap_data");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.roadmap) {
+          setWeeks(parsed.roadmap);
+          return;
+        }
+      } catch {}
+    }
+
+    // Fallback: fetch from backend with demo data so you can test
+    const fetchRoadmap = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch("http://localhost:3001/generate-roadmap", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            year: "1st Year",
+            branch: "CSE",
+            goal: "Placement",
+            skills: "I know basic Python",
+          }),
+        });
+        if (!response.ok) throw new Error("Backend error");
+        const data = await response.json();
+        setWeeks(data.roadmap);
+        localStorage.setItem("roadmap_data", JSON.stringify(data));
+      } catch (err) {
+        setError("Could not connect to backend. Make sure it's running on port 3001.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoadmap();
+  }, [roadmapData]);
 
   useEffect(() => {
     localStorage.setItem("roadmap_progress", JSON.stringify(progress));
@@ -49,19 +85,42 @@ export default function RoadmapView() {
   const getStatus = (weekNum) => progress[weekNum] || "not_started";
 
   const completedCount = Object.values(progress).filter((s) => s === "completed").length;
-  const progressPct = Math.round((completedCount / 12) * 100);
+  const totalWeeks = weeks.length || 12;
+  const progressPct = Math.round((completedCount / totalWeeks) * 100);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Generating your roadmap...</p>
+          <p className="text-gray-400 text-sm mt-1">This may take a few seconds</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl border border-red-200 p-8 max-w-md text-center">
+          <p className="text-red-600 font-semibold mb-2">Something went wrong</p>
+          <p className="text-gray-500 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-2xl mx-auto">
-
         <h1 className="text-3xl font-bold text-gray-800 mb-1">Your 12-Week Roadmap</h1>
         <p className="text-gray-500 mb-6">Click any week to see details</p>
 
         {/* Progress Bar */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-8">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-semibold text-gray-700">{completedCount} of 12 weeks completed</span>
+            <span className="text-sm font-semibold text-gray-700">{completedCount} of {totalWeeks} weeks completed</span>
             <span className="text-sm font-bold text-indigo-600">{progressPct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-3">
@@ -71,7 +130,7 @@ export default function RoadmapView() {
 
         {/* Week Cards */}
         <div className="flex flex-col gap-4">
-          {initialData.map((week) => {
+          {weeks.map((week) => {
             const isOpen = expandedWeek === week.week;
             const status = statusStyles[getStatus(week.week)];
             return (
@@ -89,7 +148,6 @@ export default function RoadmapView() {
                     <span className="text-gray-400 text-lg">{isOpen ? "▲" : "▼"}</span>
                   </div>
                 </button>
-
                 {isOpen && (
                   <div className="px-6 pb-5 border-t border-gray-100">
                     <p className="text-sm font-semibold text-gray-600 mt-4 mb-2">Tasks</p>

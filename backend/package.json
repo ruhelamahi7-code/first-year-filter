@@ -1,7 +1,7 @@
 {
   "name": "first-year-filter-backend",
   "version": "1.0.0",
-  "description": "Backend API for First Year Filter - generates personalized 12-week career roadmaps using Claude",
+  "description": "Backend API for First Year Filter",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,9 +9,9 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "groq-sdk": "^0.3.0"
   }
 }
